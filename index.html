@@ -511,55 +511,121 @@ input,select,button{font-family:'Outfit',sans-serif;}
     <!-- ── DEPÓSITOS ── -->
     <section class="page" id="sec-dep">
       <div class="ph">
-        <h1>Registrar Depósito</h1>
-        <p>Busca al cliente por correo y registra su depósito</p>
+        <h1>💰 Depósitos</h1>
+        <p>Reporte diario y registro de depósitos</p>
       </div>
-      <div class="card">
-        <div class="ctitle">🔍 Buscar cliente</div>
-        <div class="srow">
-          <input type="email" id="depEmail" placeholder="correo@cliente.com"
-                 onkeydown="if(event.key==='Enter')buscarCliente()">
-          <button class="btn-srch" onclick="buscarCliente()">Buscar</button>
-        </div>
-        <div class="alert a-err" id="depErr"></div>
 
-        <div class="cf-box" id="cfBox">
-          <div class="cf-name" id="cfName">—</div>
-          <div class="cf-meta" id="cfMeta">—</div>
-        </div>
+      <!-- TABS -->
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <button id="tabReporte" onclick="switchDepTab('reporte')"
+          style="padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+                 background:var(--primary);color:#fff;border:none;">
+          📊 Reporte diario
+        </button>
+        <button id="tabBuscar" onclick="switchDepTab('buscar')"
+          style="padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+                 background:var(--card);color:var(--muted);border:1px solid var(--border);">
+          🔍 Buscar cliente
+        </button>
+      </div>
 
-        <div id="depForm" style="display:none;">
-          <div class="frow">
-            <div class="fg2">
-              <label>Monto (USD)</label>
-              <input type="number" id="depMonto" placeholder="0.00" min="0" step="0.01">
+      <!-- ── TAB REPORTE ── -->
+      <div id="depTabReporte">
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+            <div id="repAsesorBox" style="flex:1;min-width:160px;">
+              <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px;">👤 ASESOR</label>
+              <select id="repAsesor" onchange="cargarReporte()"
+                style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;">
+                <option value="">— Todos —</option>
+              </select>
             </div>
-            <div class="fg2">
-              <label>Fecha del depósito</label>
-              <input type="date" id="depFecha" style="width:100%;">
+            <div style="flex:1;min-width:130px;">
+              <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px;">📅 DESDE</label>
+              <input type="date" id="repDesde" onchange="cargarReporte()"
+                style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;">
             </div>
-            <div class="fg2">
-              <label>Observación (opcional)</label>
-              <input type="text" id="depObs" placeholder="Ej: primer depósito">
+            <div style="flex:1;min-width:130px;">
+              <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px;">HASTA</label>
+              <input type="date" id="repHasta" onchange="cargarReporte()"
+                style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;">
             </div>
+            <button onclick="limpiarReporte()"
+              style="padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">
+              ✕ Limpiar
+            </button>
           </div>
-          <button class="btn-save" onclick="registrarDeposito()">Registrar depósito</button>
-          <div class="alert a-ok" id="depOk" style="margin-top:12px;"></div>
         </div>
 
-        <div id="depHist" style="display:none;margin-top:20px;">
-          <div class="ctitle" style="margin-top:4px;margin-bottom:12px;">📋 Historial de depósitos</div>
-          <!-- Mes actual -->
-          <div id="depMesActual" style="display:none;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:12px 16px;margin-bottom:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="font-size:11px;font-weight:700;color:var(--success);text-transform:uppercase;">📅 Este mes</span>
-              <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--success);" id="depMesTotal">$0</span>
-            </div>
-            <div id="depMesLista"></div>
+        <!-- KPIs resumen -->
+        <div id="repKPIs" style="display:none;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;">
+          <div class="scard">
+            <div class="slabel">Total depósitos</div>
+            <div class="sval blue" id="repTotalDeps">0</div>
+            <div class="ssub">En el período</div>
           </div>
-          <!-- Historial por mes -->
-          <div id="depList"></div>
-          <div class="dep-total">Total histórico: <strong id="depTotal">$0</strong></div>
+          <div class="scard">
+            <div class="slabel">Monto total</div>
+            <div class="sval" style="color:var(--success);" id="repTotalMonto">$0</div>
+            <div class="ssub">USD</div>
+          </div>
+          <div class="scard">
+            <div class="slabel">Clientes únicos</div>
+            <div class="sval" id="repClientesUnicos">0</div>
+            <div class="ssub">Depositaron en el período</div>
+          </div>
+        </div>
+
+        <!-- Lista por día -->
+        <div id="repLista">
+          <div class="empty"><p>Selecciona un período para ver el reporte</p></div>
+        </div>
+      </div>
+
+      <!-- ── TAB BUSCAR ── -->
+      <div id="depTabBuscar" style="display:none;">
+        <div class="card">
+          <div class="ctitle">🔍 Buscar cliente</div>
+          <div class="srow">
+            <input type="email" id="depEmail" placeholder="correo@cliente.com"
+                   onkeydown="if(event.key==='Enter')buscarCliente()">
+            <button class="btn-srch" onclick="buscarCliente()">Buscar</button>
+          </div>
+          <div class="alert a-err" id="depErr"></div>
+          <div class="cf-box" id="cfBox">
+            <div class="cf-name" id="cfName">—</div>
+            <div class="cf-meta" id="cfMeta">—</div>
+          </div>
+          <div id="depForm" style="display:none;">
+            <div class="frow">
+              <div class="fg2">
+                <label>Monto (USD)</label>
+                <input type="number" id="depMonto" placeholder="0.00" min="0" step="0.01">
+              </div>
+              <div class="fg2">
+                <label>Fecha del depósito</label>
+                <input type="date" id="depFecha" style="width:100%;">
+              </div>
+              <div class="fg2">
+                <label>Observación (opcional)</label>
+                <input type="text" id="depObs" placeholder="Ej: primer depósito">
+              </div>
+            </div>
+            <button class="btn-save" onclick="registrarDeposito()">Registrar depósito</button>
+            <div class="alert a-ok" id="depOk" style="margin-top:12px;"></div>
+          </div>
+          <div id="depHist" style="display:none;margin-top:20px;">
+            <div class="ctitle" style="margin-top:4px;margin-bottom:12px;">📋 Historial de depósitos</div>
+            <div id="depMesActual" style="display:none;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:12px 16px;margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="font-size:11px;font-weight:700;color:var(--success);text-transform:uppercase;">📅 Este mes</span>
+                <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--success);" id="depMesTotal">$0</span>
+              </div>
+              <div id="depMesLista"></div>
+            </div>
+            <div id="depList"></div>
+            <div class="dep-total">Total histórico: <strong id="depTotal">$0</strong></div>
+          </div>
         </div>
       </div>
     </section>
@@ -1233,6 +1299,7 @@ function navTo(s) {
   document.getElementById('nb-'+s).classList.add('active');
   // Pausar actualizaciones en tiempo real cuando se está en depósitos
   pausarActualizaciones = (s === 'dep');
+  if (s === 'dep') initDepSeccion();
   if (s === 'clients') initClients();
   if (s === 'alterno') {
     const formCard = document.querySelector('#sec-alterno .card:first-of-type');
@@ -1752,6 +1819,146 @@ function closeModal(e) {
 }
 
 // ════ DEPOSITS ════
+// ════ SECCIÓN DEPÓSITOS — TABS Y REPORTE ════
+function switchDepTab(tab) {
+  const isReporte = tab === 'reporte';
+  document.getElementById('depTabReporte').style.display = isReporte ? 'block' : 'none';
+  document.getElementById('depTabBuscar').style.display  = isReporte ? 'none'  : 'block';
+  document.getElementById('tabReporte').style.cssText = isReporte
+    ? 'padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:var(--primary);color:#fff;border:none;'
+    : 'padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1px solid var(--border);';
+  document.getElementById('tabBuscar').style.cssText = isReporte
+    ? 'padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1px solid var(--border);'
+    : 'padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:var(--primary);color:#fff;border:none;';
+  if (isReporte) cargarReporte();
+}
+
+function initDepSeccion() {
+  // Poblar selector de asesores
+  const sel = document.getElementById('repAsesor');
+  if (!sel) return;
+  if (isLdr || isSubLdr) {
+    document.getElementById('repAsesorBox').style.display = 'block';
+    const asesores = [...new Set(allClients.map(c=>c.asesor||'').filter(Boolean))].sort();
+    sel.innerHTML = '<option value="">— Todos —</option>' +
+      asesores.map(a=>`<option value="${a}">${a}</option>`).join('');
+  } else {
+    document.getElementById('repAsesorBox').style.display = 'none';
+  }
+  // Fecha por defecto: hoy
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('repDesde').value = hoy;
+  document.getElementById('repHasta').value = hoy;
+  cargarReporte();
+}
+
+function limpiarReporte() {
+  document.getElementById('repDesde').value = '';
+  document.getElementById('repHasta').value = '';
+  document.getElementById('repAsesor').value = '';
+  cargarReporte();
+}
+
+async function cargarReporte() {
+  const listaEl = document.getElementById('repLista');
+  const kpisEl  = document.getElementById('repKPIs');
+  listaEl.innerHTML = '<div class="loading"><div class="dots"><span></span><span></span><span></span></div></div>';
+
+  const asesorFiltro = document.getElementById('repAsesor') ? document.getElementById('repAsesor').value : '';
+  const desde = document.getElementById('repDesde').value;
+  const hasta  = document.getElementById('repHasta').value;
+
+  // Obtener depósitos del período
+  let query = db.collection('depositos');
+  const snap = await query.get();
+  let deps = snap.docs.map(d=>({id:d.id,...d.data()}));
+
+  // Filtrar por asesor y fechas
+  if (!isLdr && !isSubLdr) {
+    const yo = EMAIL_TO_NAME[CU.email.toLowerCase()] || CU.email;
+    // Para asesores: filtrar por clientes que les pertenecen
+    const misIds = new Set(allClients.filter(c=>c.asesor===yo).map(c=>c.id));
+    deps = deps.filter(d=>misIds.has(d.clienteId));
+  } else if (asesorFiltro) {
+    const idsAsesor = new Set(allClients.filter(c=>c.asesor===asesorFiltro).map(c=>c.id));
+    deps = deps.filter(d=>idsAsesor.has(d.clienteId));
+  }
+  if (desde) deps = deps.filter(d=>d.fecha && d.fecha >= desde);
+  if (hasta) deps = deps.filter(d=>d.fecha && d.fecha <= hasta+'T23:59:59');
+
+  if (deps.length === 0) {
+    kpisEl.style.display = 'none';
+    listaEl.innerHTML = '<div class="empty"><p>No hay depósitos en este período</p></div>';
+    return;
+  }
+
+  // KPIs
+  const totalMonto = deps.reduce((s,d)=>s+(d.monto||0),0);
+  const clientesUnicos = new Set(deps.map(d=>d.clienteId)).size;
+  document.getElementById('repTotalDeps').textContent = deps.length;
+  document.getElementById('repTotalMonto').textContent = '$'+totalMonto.toLocaleString('es',{maximumFractionDigits:0});
+  document.getElementById('repClientesUnicos').textContent = clientesUnicos;
+  kpisEl.style.display = 'grid';
+
+  // Agrupar por día
+  const porDia = {};
+  deps.forEach(d => {
+    const fecha = d.fecha ? d.fecha.split('T')[0] : 'Sin fecha';
+    if (!porDia[fecha]) porDia[fecha] = {deps:[], monto:0};
+    porDia[fecha].deps.push(d);
+    porDia[fecha].monto += d.monto||0;
+  });
+
+  const dias = Object.keys(porDia).sort().reverse();
+  const hoy  = new Date().toISOString().split('T')[0];
+  const ayer = new Date(Date.now()-86400000).toISOString().split('T')[0];
+
+  listaEl.innerHTML = dias.map(dia => {
+    const info    = porDia[dia];
+    const label   = dia === hoy ? '🟢 Hoy' : dia === ayer ? '🟡 Ayer' : '';
+    const fechaFmt = dia !== 'Sin fecha'
+      ? new Date(dia+'T12:00:00').toLocaleDateString('es-VE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})
+      : 'Sin fecha';
+    const diaId = 'dia_'+dia.replace(/-/g,'');
+
+    return `<div style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div onclick="const e=document.getElementById('${diaId}');e.style.display=e.style.display==='none'?'block':'none';"
+        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:var(--surface);">
+        <div>
+          <span style="font-size:13px;font-weight:700;text-transform:capitalize;">${fechaFmt}</span>
+          ${label?`<span style="font-size:11px;margin-left:8px;font-weight:600;">${label}</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:11px;color:var(--muted);">${info.deps.length} dep. · ${new Set(info.deps.map(d=>d.clienteId)).size} clientes</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--success);">
+            $${info.monto.toLocaleString('es',{maximumFractionDigits:0})}
+          </span>
+          <span style="color:var(--muted);">▾</span>
+        </div>
+      </div>
+      <div id="${diaId}" style="${dia===hoy?'display:block':'display:none'};padding:8px 16px;">
+        ${info.deps.map(d => {
+          const cli = allClients.find(c=>c.id===d.clienteId);
+          const nombre = cli ? `${cli.nombre||''} ${cli.apellido||''}`.trim() : d.correoCliente||'—';
+          const asesor = cli ? (cli.asesor||'—') : '—';
+          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;"
+            onclick="openModal('${d.clienteId}')">
+            <div>
+              <div style="font-size:13px;font-weight:600;">${nombre}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+                ${asesor}${d.idCuentaFOT?` · ID: ${d.idCuentaFOT}`:''}${d.observacion?` · ${d.observacion}`:''}
+              </div>
+            </div>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--success);">
+              $${(d.monto||0).toLocaleString('es',{maximumFractionDigits:0})}
+            </span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function buscarCliente() {
   const email = document.getElementById('depEmail').value.trim().toLowerCase();
   ['depErr','depOk'].forEach(id=>{ document.getElementById(id).style.display='none'; });
@@ -3164,4 +3371,5 @@ function showAlert(id, msg) {
 </script>
 </body>
 </html>
+
 
