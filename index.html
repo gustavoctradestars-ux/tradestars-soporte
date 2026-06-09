@@ -1909,7 +1909,7 @@ async function cargarReporte() {
     porDia[fecha].monto += d.monto||0;
   });
 
-  const dias = Object.keys(porDia).sort().reverse();
+  const dias = Object.keys(porDia).sort();
   const hoy  = new Date().toISOString().split('T')[0];
   const ayer = new Date(Date.now()-86400000).toISOString().split('T')[0];
 
