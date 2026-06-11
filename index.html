@@ -1440,12 +1440,54 @@ function monthFilter(list) {
   return filtered;
 }
 
-function renderDash() {
+async function renderDash() {
   const list = monthFilter(allClients);
   const total = list.length;
   const validados = list.filter(c=>c.gestion&&c.gestion.cuentaValidada).length;
-  const activados = list.filter(c=>c.activado).length;
-  const monto = list.reduce((s,c)=>s+(c.totalDepositos||0),0);
+
+  const desde = document.getElementById('dashDesde') ? document.getElementById('dashDesde').value : '';
+  const hasta  = document.getElementById('dashHasta') ? document.getElementById('dashHasta').value : '';
+
+  // Si hay filtro de fechas → calcular monto y activados desde colección depositos
+  let activados, monto, byA = {};
+
+  if (desde || hasta) {
+    // Consultar depositos del período
+    const snap = await db.collection('depositos').get();
+    let deps = snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Filtrar por IDs de clientes en la lista filtrada
+    const idsEnLista = new Set(list.map(c=>c.id));
+    deps = deps.filter(d=>idsEnLista.has(d.clienteId));
+    // Filtrar por fecha del depósito
+    if (desde) deps = deps.filter(d=>d.fecha && d.fecha >= desde);
+    if (hasta) deps = deps.filter(d=>d.fecha && d.fecha <= hasta+'T23:59:59');
+
+    monto = deps.reduce((s,d)=>s+(d.monto||0),0);
+    // Clientes únicos que depositaron en el período
+    const clientesConDep = new Set(deps.map(d=>d.clienteId));
+    activados = list.filter(c=>clientesConDep.has(c.id)).length;
+
+    // Calcular monto por asesor basado en depósitos del período
+    list.forEach(c=>{
+      const a=c.asesor||'Sin asignar';
+      if(!byA[a])byA[a]={t:0,dep:0,monto:0};
+      byA[a].t++;
+      if(clientesConDep.has(c.id))byA[a].dep++;
+      byA[a].monto += deps.filter(d=>d.clienteId===c.id).reduce((s,d)=>s+(d.monto||0),0);
+    });
+  } else {
+    // Sin filtro de fechas → usar totalDepositos del cliente (más rápido)
+    activados = list.filter(c=>c.activado).length;
+    monto = list.reduce((s,c)=>s+(c.totalDepositos||0),0);
+    list.forEach(c=>{
+      const a=c.asesor||'Sin asignar';
+      if(!byA[a])byA[a]={t:0,dep:0,monto:0};
+      byA[a].t++;
+      if(c.activado)byA[a].dep++;
+      byA[a].monto+=(c.totalDepositos||0);
+    });
+  }
+
   document.getElementById('st-total').textContent = total;
   document.getElementById('st-val').textContent   = validados;
   document.getElementById('st-act').textContent   = activados;
@@ -1457,8 +1499,7 @@ function renderDash() {
     if(document.getElementById('bar-val'))document.getElementById('bar-val').style.width=pv+'%';
     if(document.getElementById('bar-act'))document.getElementById('bar-act').style.width=pa+'%';
   },150);
-  const byA={};
-  list.forEach(c=>{const a=c.asesor||'Sin asignar';if(!byA[a])byA[a]={t:0,dep:0,monto:0};byA[a].t++;if(c.activado)byA[a].dep++;byA[a].monto+=(c.totalDepositos||0);});
+
   const esAsesorPuro=!isLdr&&!isSubLdr;
   let rank=Object.entries(byA).sort((a,b)=>b[1].monto-a[1].monto);
   if(esAsesorPuro)rank=rank.slice(0,10);
