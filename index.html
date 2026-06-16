@@ -345,6 +345,9 @@ input,select,button{font-family:'Outfit',sans-serif;}
       <button class="nav-btn ldr"    id="nb-add"     onclick="navTo('add')" style="display:none">
         <span class="ic">➕</span>Agregar Cliente
       </button>
+      <button class="nav-btn" id="nb-links" onclick="navTo('links')">
+        <span class="ic">🔗</span>Links Acciones
+      </button>
       <button class="nav-btn asesor-only" id="nb-alterno" onclick="navTo('alterno')" style="display:none">
         <span class="ic">🔗</span>Clientes Alternos
       </button>
@@ -926,6 +929,80 @@ input,select,button{font-family:'Outfit',sans-serif;}
       </div>
     </section>
 
+    <!-- ── LINKS ACCIONES ── -->
+    <section class="page" id="sec-links">
+      <div class="ph">
+        <h1>🔗 Links para Acciones Tradestars</h1>
+        <p>Accede a los links de cada campaña por broker</p>
+      </div>
+
+      <!-- Solo CEO puede crear acciones -->
+      <div id="linksAdminPanel" style="display:none;margin-bottom:20px;">
+        <div class="card">
+          <div class="ctitle" style="margin-bottom:12px;">➕ Nueva acción</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+            <div style="flex:2;min-width:160px;">
+              <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px;">NOMBRE DE LA ACCIÓN</label>
+              <input type="text" id="linkAccionNombre" placeholder="Ej: INTENSIVO 07/26"
+                style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;">
+            </div>
+            <div style="flex:2;min-width:200px;">
+              <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px;">🟦 LINK FOTMARKETS</label>
+              <input type="url" id="linkFOT" placeholder="https://..."
+                style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;">
+            </div>
+            <div style="flex:2;min-width:200px;">
+              <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px;">🟧 LINK TRADING.COM <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
+              <input type="url" id="linkTRADING" placeholder="https://..."
+                style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;">
+            </div>
+            <div style="flex:2;min-width:200px;">
+              <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px;">🟥 LINK XM <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
+              <input type="url" id="linkXM" placeholder="https://..."
+                style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;">
+            </div>
+            <button onclick="guardarAccionLink()"
+              style="padding:9px 20px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">
+              Guardar
+            </button>
+          </div>
+          <div id="linkOk" class="alert a-ok" style="display:none;margin-top:10px;"></div>
+        </div>
+      </div>
+
+      <!-- Brokers -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+        <div onclick="selectBroker('FOTMARKETS')" id="brokerFOT"
+          style="cursor:pointer;border-radius:14px;padding:20px;text-align:center;border:2px solid var(--primary);background:var(--primary-g);transition:all .2s;">
+          <div style="font-size:28px;margin-bottom:8px;">🟦</div>
+          <div style="font-size:15px;font-weight:700;color:var(--primary);">FOTMARKETS</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Broker principal</div>
+        </div>
+        <div onclick="selectBroker('TRADING.COM')" id="brokerTRADING"
+          style="cursor:pointer;border-radius:14px;padding:20px;text-align:center;border:1px solid var(--border);background:var(--card);transition:all .2s;">
+          <div style="font-size:28px;margin-bottom:8px;">🟧</div>
+          <div style="font-size:15px;font-weight:700;">TRADING.COM</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Broker de emergencia</div>
+        </div>
+        <div onclick="selectBroker('XM')" id="brokerXM"
+          style="cursor:pointer;border-radius:14px;padding:20px;text-align:center;border:1px solid var(--border);background:var(--card);transition:all .2s;">
+          <div style="font-size:28px;margin-bottom:8px;">🟥</div>
+          <div style="font-size:15px;font-weight:700;">XM</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Broker de emergencia</div>
+        </div>
+      </div>
+
+      <!-- Lista de acciones -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div class="ctitle" id="linksBrokerTitulo">🟦 FOTMARKETS — Acciones disponibles</div>
+        </div>
+        <div id="linksLista">
+          <div class="loading"><div class="dots"><span></span><span></span><span></span></div></div>
+        </div>
+      </div>
+    </section>
+
   </main>
 </div>
 </div>
@@ -1299,6 +1376,7 @@ function navTo(s) {
   document.getElementById('nb-'+s).classList.add('active');
   // Pausar actualizaciones en tiempo real cuando se está en depósitos
   pausarActualizaciones = (s === 'dep');
+  if (s === 'links') initLinks();
   if (s === 'dep') initDepSeccion();
   if (s === 'clients') initClients();
   if (s === 'alterno') {
@@ -3391,6 +3469,112 @@ async function renderConversionMetrics() {
     <div style="margin-top:12px;font-size:11px;color:var(--muted);">
       ⏱️ Verde = ≤7 días · Amarillo = ≤30 días · Rojo = >30 días
     </div>`;
+}
+
+// ════ LINKS ACCIONES ════
+let brokerSeleccionado = 'FOTMARKETS';
+
+function initLinks() {
+  // Solo CEO (gustavoctradestars@gmail.com) puede administrar
+  const esCEO = CU && CU.email === 'gustavoctradestars@gmail.com';
+  document.getElementById('linksAdminPanel').style.display = esCEO ? 'block' : 'none';
+  selectBroker('FOTMARKETS');
+}
+
+function selectBroker(broker) {
+  brokerSeleccionado = broker;
+  const brokers = {
+    'FOTMARKETS': {id:'brokerFOT', emoji:'🟦', color:'var(--primary)'},
+    'TRADING.COM': {id:'brokerTRADING', emoji:'🟧', color:'#f59e0b'},
+    'XM': {id:'brokerXM', emoji:'🟥', color:'var(--danger)'}
+  };
+  // Resetear estilos
+  Object.entries(brokers).forEach(([b,cfg])=>{
+    const el = document.getElementById(cfg.id);
+    if (b === broker) {
+      el.style.border = `2px solid ${cfg.color}`;
+      el.style.background = b==='FOTMARKETS'?'var(--primary-g)':b==='TRADING.COM'?'rgba(245,158,11,.08)':'rgba(239,68,68,.08)';
+    } else {
+      el.style.border = '1px solid var(--border)';
+      el.style.background = 'var(--card)';
+    }
+  });
+  const cfg = brokers[broker];
+  document.getElementById('linksBrokerTitulo').textContent = `${cfg.emoji} ${broker} — Acciones disponibles`;
+  cargarLinks();
+}
+
+function cargarLinks() {
+  const lista = document.getElementById('linksLista');
+  lista.innerHTML = '<div class="loading"><div class="dots"><span></span><span></span><span></span></div></div>';
+  db.collection('linksAcciones').orderBy('fechaCreacion','desc').get().then(snap=>{
+    const acciones = snap.docs.map(d=>({id:d.id,...d.data()}))
+      .filter(a => a['link_'+brokerSeleccionado.replace('.','_')]);
+    if (acciones.length === 0) {
+      lista.innerHTML = '<div class="empty"><p>No hay acciones con link para este broker</p></div>';
+      return;
+    }
+    const esCEO = CU && CU.email === 'gustavoctradestars@gmail.com';
+    lista.innerHTML = acciones.map(a=>{
+      const link = a['link_'+brokerSeleccionado.replace('.','_')];
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;
+        border:1px solid var(--border);border-radius:10px;margin-bottom:8px;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:14px;font-weight:700;">${a.nombre}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;word-break:break-all;">${link}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="copiarLink('${link}', this)"
+            style="padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;
+                   cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">
+            📋 Copiar link
+          </button>
+          ${esCEO?`<button onclick="eliminarAccion('${a.id}')"
+            style="padding:8px 12px;background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2);
+                   border-radius:8px;cursor:pointer;font-size:12px;">🗑️</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  });
+}
+
+function copiarLink(link, btn) {
+  navigator.clipboard.writeText(link).then(()=>{
+    const orig = btn.textContent;
+    btn.textContent = '✅ ¡Copiado!';
+    btn.style.background = 'var(--success)';
+    setTimeout(()=>{btn.textContent=orig;btn.style.background='var(--primary)';},2000);
+  }).catch(()=>{ alert('Link: '+link); });
+}
+
+function guardarAccionLink() {
+  const nombre = document.getElementById('linkAccionNombre').value.trim();
+  const fot    = document.getElementById('linkFOT').value.trim();
+  if (!nombre) { alert('Escribe el nombre de la acción.'); return; }
+  if (!fot)    { alert('El link de FOTMARKETS es obligatorio.'); return; }
+  const data = {
+    nombre,
+    link_FOTMARKETS:  fot,
+    link_TRADING_COM: document.getElementById('linkTRADING').value.trim(),
+    link_XM:          document.getElementById('linkXM').value.trim(),
+    fechaCreacion:    new Date().toISOString()
+  };
+  db.collection('linksAcciones').add(data).then(()=>{
+    document.getElementById('linkAccionNombre').value='';
+    document.getElementById('linkFOT').value='';
+    document.getElementById('linkTRADING').value='';
+    document.getElementById('linkXM').value='';
+    const ok=document.getElementById('linkOk');
+    ok.textContent='✅ Acción guardada correctamente.';
+    ok.style.display='block';
+    setTimeout(()=>ok.style.display='none',3000);
+    cargarLinks();
+  }).catch(e=>alert('Error: '+e.message));
+}
+
+function eliminarAccion(id) {
+  if (!confirm('¿Eliminar esta acción?')) return;
+  db.collection('linksAcciones').doc(id).delete().then(()=>cargarLinks());
 }
 
 function showAlert(id, msg) {
