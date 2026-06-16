@@ -3507,7 +3507,7 @@ function selectBroker(broker) {
 function cargarLinks() {
   const lista = document.getElementById('linksLista');
   lista.innerHTML = '<div class="loading"><div class="dots"><span></span><span></span><span></span></div></div>';
-  db.collection('linksAcciones').orderBy('fechaCreacion','desc').get().then(snap=>{
+  db.collection('linksAcciones').orderBy('fechaCreacion','asc').get().then(snap=>{
     const acciones = snap.docs.map(d=>({id:d.id,...d.data()}))
       .filter(a => a['link_'+brokerSeleccionado.replace('.','_')]);
     if (acciones.length === 0) {
@@ -3586,5 +3586,7 @@ function showAlert(id, msg) {
 </script>
 </body>
 </html>
+
+
 
 
