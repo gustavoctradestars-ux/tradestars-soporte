@@ -1017,7 +1017,6 @@ input,select,button{font-family:'Outfit',sans-serif;}
           <span id="mProd" class="pb">—</span>
           <span style="font-size:11.5px;color:var(--muted);" id="mCorreo">—</span>
           <span style="font-size:11.5px;color:var(--muted);" id="mPais">—</span>
-          <span style="font-size:11.5px;color:var(--primary);font-weight:600;">🧑‍💼 <span id="mAsesor">—</span></span>
         </div>
         <!-- ACCIONES LÍDERES/SUBLÍDERES -->
         <div id="mAccionesLdr" style="display:none;margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -1221,24 +1220,7 @@ const LIDERES = [
   'notafacil@gmail.com'
 ];
 
-const EMAIL_TO_NAME = {
-  'alexandertradestars1@gmail.com':'ALEXANDER',
-  'alexistradestars@gmail.com':'ALEXIS',
-  'antonitradestars@gmail.com':'ANTONI',
-  'carlatradestars@gmail.com':'CARLA',
-  'carlostradestars@gmail.com':'CARLOS',
-  'cesartradestars@gmail.com':'CESAR',
-  'cleotradestars@gmail.com':'CLEOMARYS',
-  'dailytradestars@gmail.com':'DAILY',
-  'elizabethtradestars@gmail.com':'ELIZABETH',
-  'giovannatradestars@gmail.com':'GIOVANNA',
-  'jorgelis.tradestars@gmail.com':'JORGELIS',
-  'leonardotradestars@gmail.com':'LEONARDO',
-  'roxanatraderstars@gmail.com':'ROXANA',
-  'tania.tradestars@gmail.com':'TANIA',
-  'yamila.tradestars@gmail.com':'YAMILA',
-  'yusmartradestars@gmail.com':'YUSMAR'
-};
+let EMAIL_TO_NAME = {};
 
 const FLUJOS = {
   TRIBU:[
@@ -1317,20 +1299,29 @@ auth.onAuthStateChanged(u => {
   if (u) {
     CU = u;
     isLdr = LIDERES.includes(u.email.toLowerCase());
-    if (!isLdr) {
-      // Check if sublider in Firestore
-      db.collection('sublideres').where('email','==',u.email.toLowerCase()).get().then(snap => {
-        if (!snap.empty) {
-          isSubLdr = true;
-          subLiderData = {id: snap.docs[0].id, ...snap.docs[0].data()};
+    // Cargar mapeo email→nombre desde Firestore
+    db.collection('asesores').get().then(snap => {
+      EMAIL_TO_NAME = {};
+      snap.docs.forEach(d => {
+        const data = d.data();
+        if (data.email && data.nombre) {
+          EMAIL_TO_NAME[data.email.toLowerCase()] = data.nombre;
         }
-        showApp();
       });
-    } else {
-      showApp();
-    }
+      if (!isLdr) {
+        db.collection('sublideres').where('email','==',u.email.toLowerCase()).get().then(snap => {
+          if (!snap.empty) {
+            isSubLdr = true;
+            subLiderData = {id: snap.docs[0].id, ...snap.docs[0].data()};
+          }
+          showApp();
+        });
+      } else {
+        showApp();
+      }
+    });
   }
-  else   { CU = null; showLogin(); }
+  else { CU = null; showLogin(); }
 });
 
 function showLogin() {
@@ -1701,7 +1692,6 @@ function renderClients() {
           <span>📧 ${c.correo||'—'}</span>
           <span>🌍 ${c.pais||'—'}</span>
           <span>📅 ${fecha}</span>
-          <span>🧑‍💼 ${c.asesor||'Sin asignar'}</span>
           ${c.activado?'<span style="color:var(--success)">✅ Activado</span>':''}
         </div>
       </div>
@@ -1725,7 +1715,6 @@ function openModal(id) {
   document.getElementById('mNombre').textContent = `${c.nombre||''} ${c.apellido||''}`;
   document.getElementById('mCorreo').textContent = c.correo||'—';
   document.getElementById('mPais').textContent   = c.pais||'—';
-  document.getElementById('mAsesor').textContent = c.asesor||'Sin asignar';
   document.getElementById('mIdFOT') && (document.getElementById('mIdFOT').value = c.idCuentaFOT||'');
   // Cargar IDs FOT múltiples
   const idsFOT = c.idsCuentaFOT && c.idsCuentaFOT.length > 0
@@ -3589,8 +3578,3 @@ function showAlert(id, msg) {
 </script>
 </body>
 </html>
-
-
-
-
-
