@@ -1537,13 +1537,13 @@ async function renderDash() {
   } else {
     // Sin filtro → usar totalDepositos del cliente
     total = list.length;
-    activados = list.filter(c=>c.activado).length;
+    activados = list.filter(c=>c.activado && c.esActivacion !== false).length;
     monto = list.reduce((s,c)=>s+(c.totalDepositos||0),0);
     list.forEach(c=>{
       const a=c.asesor||'Sin asignar';
       if(!byA[a])byA[a]={t:0,dep:0,monto:0};
       byA[a].t++;
-      if(c.activado)byA[a].dep++;
+      if(c.activado && c.esActivacion !== false)byA[a].dep++;
       byA[a].monto+=(c.totalDepositos||0);
     });
   }
@@ -1768,12 +1768,25 @@ function openModal(id) {
   if (elimBox) elimBox.style.display = (c.metodo === 'ALTERNO' || c.producto === 'ALTERNO') ? 'block' : 'none';
   cerrarPaneles();
   const actBox = document.getElementById('mActivacionBox');
+  // Mostrar toggle solo si es líder/sublíder Y el cliente tiene exactamente 1 depósito
   if (isLdr || isSubLdr) {
-    actBox.style.display = 'flex';
-    const esAct = c.esActivacion !== false; // default true
-    const chk = document.getElementById('mEsActivacion');
-    chk.checked = esAct;
-    actualizarToggleUI(esAct);
+    db.collection('depositos').where('clienteId','==',id).get().then(snap => {
+      if (snap.size === 1) {
+        // Primer depósito — mostrar toggle para que el líder valide
+        actBox.style.display = 'flex';
+        const esAct = c.esActivacion !== false;
+        const chk = document.getElementById('mEsActivacion');
+        chk.checked = esAct;
+        actualizarToggleUI(esAct);
+      } else {
+        // Ya tiene más de 1 depósito o ninguno — ocultar toggle
+        actBox.style.display = 'none';
+        // Si tiene depósitos y esActivacion no está definido, asegurar que sea true
+        if (snap.size > 1 && c.esActivacion === undefined) {
+          db.collection('clientes').doc(id).update({ esActivacion: true }).catch(()=>{});
+        }
+      }
+    });
   } else {
     actBox.style.display = 'none';
   }
