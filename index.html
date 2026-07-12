@@ -1017,6 +1017,7 @@ input,select,button{font-family:'Outfit',sans-serif;}
           <span id="mProd" class="pb">—</span>
           <span style="font-size:11.5px;color:var(--muted);" id="mCorreo">—</span>
           <span style="font-size:11.5px;color:var(--muted);" id="mPais">—</span>
+          <span style="font-size:11.5px;color:var(--primary);font-weight:600;background:var(--primary-g);border:1px solid rgba(59,130,246,.3);border-radius:20px;padding:2px 10px;" id="mAsesor">🧑‍💼 —</span>
         </div>
         <!-- ACCIONES LÍDERES/SUBLÍDERES -->
         <div id="mAccionesLdr" style="display:none;margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -1416,14 +1417,35 @@ function poblarAsesorCheckList() {
   const asesores = [...new Set(allClients.map(c=>c.asesor||'').filter(Boolean))].sort();
   const container = document.getElementById('asesorCheckList');
   if (!container) return;
-  container.innerHTML = asesores.map(a => `
+
+  // Solo la primera vez marcamos "todos" por defecto. Las veces siguientes
+  // respetamos la selección que ya tenía el usuario, para no resetear el
+  // filtro cada vez que llega una actualización en tiempo real.
+  const esPrimeraCarga = !container.dataset.cargado;
+
+  container.innerHTML = asesores.map(a => {
+    const marcado = esPrimeraCarga ? true : dashAsesoresSeleccionados.includes(a);
+    return `
     <label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:13px;
       border-radius:6px;transition:background .15s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
       <input type="checkbox" class="chk-asesor" value="${a}"
-        onchange="onAsesorCheck()" checked>
+        onchange="onAsesorCheck()" ${marcado ? 'checked' : ''}>
       ${a}
-    </label>`).join('');
-  dashAsesoresSeleccionados = [...asesores];
+    </label>`;
+  }).join('');
+  container.dataset.cargado = '1';
+
+  if (esPrimeraCarga) {
+    dashAsesoresSeleccionados = [...asesores];
+  } else {
+    // Si algún asesor seleccionado ya no existe (por ejemplo fue eliminado),
+    // lo quitamos de la selección para que no quede huérfano.
+    dashAsesoresSeleccionados = dashAsesoresSeleccionados.filter(a => asesores.includes(a));
+  }
+
+  const todosChk = document.getElementById('chkTodosAsesores');
+  if (todosChk) todosChk.checked = dashAsesoresSeleccionados.length === asesores.length;
+
   renderChipsAsesores();
 }
 
@@ -1692,6 +1714,7 @@ function renderClients() {
           <span>📧 ${c.correo||'—'}</span>
           <span>🌍 ${c.pais||'—'}</span>
           <span>📅 ${fecha}</span>
+          <span>🧑‍💼 ${c.asesor||'—'}</span>
           ${c.activado?'<span style="color:var(--success)">✅ Activado</span>':''}
         </div>
       </div>
@@ -1715,6 +1738,20 @@ function openModal(id) {
   document.getElementById('mNombre').textContent = `${c.nombre||''} ${c.apellido||''}`;
   document.getElementById('mCorreo').textContent = c.correo||'—';
   document.getElementById('mPais').textContent   = c.pais||'—';
+  // Asesor actual — se muestra de inmediato con el dato local y luego se
+  // confirma con Firestore por si hubo una transferencia reciente.
+  const mAsesorEl = document.getElementById('mAsesor');
+  if (mAsesorEl) mAsesorEl.textContent = '🧑‍💼 ' + (c.asesor || '—');
+  db.collection('clientes').doc(id).get().then(freshDoc => {
+    if (!freshDoc.exists || modalId !== id) return; // el modal ya cambió o se cerró
+    const freshData = freshDoc.data();
+    if (mAsesorEl && freshData.asesor) mAsesorEl.textContent = '🧑‍💼 ' + freshData.asesor;
+    // Actualizamos también la copia local para que el resto de la app quede al día
+    const idxA = allClients.findIndex(x=>x.id===id);
+    if (idxA !== -1) allClients[idxA].asesor = freshData.asesor;
+    const idxV = viewClients.findIndex(x=>x.id===id);
+    if (idxV !== -1) viewClients[idxV].asesor = freshData.asesor;
+  }).catch(()=>{});
   document.getElementById('mIdFOT') && (document.getElementById('mIdFOT').value = c.idCuentaFOT||'');
   // Cargar IDs FOT múltiples
   const idsFOT = c.idsCuentaFOT && c.idsCuentaFOT.length > 0
@@ -2927,10 +2964,15 @@ function confirmarTransferencia() {
       // Notificar al nuevo asesor por Slack
       notificarTransferenciaSlack(cliente, nuevoAsesor);
       cerrarPaneles();
-      closeModal();
       // Actualizar lista local
       const idx = allClients.findIndex(c=>c.id===modalId);
       if (idx !== -1) allClients[idx].asesor = nuevoAsesor;
+      const idxV = viewClients.findIndex(c=>c.id===modalId);
+      if (idxV !== -1) viewClients[idxV].asesor = nuevoAsesor;
+      // Reflejar el cambio en la ficha sin necesidad de volver a abrirla
+      const mAsesorEl = document.getElementById('mAsesor');
+      if (mAsesorEl) mAsesorEl.textContent = '🧑‍💼 ' + nuevoAsesor;
+      closeModal();
       alert(`✅ Cliente transferido a ${nuevoAsesor} correctamente.`);
     })
     .catch(e => alert('Error: ' + e.message));
