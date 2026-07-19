@@ -852,7 +852,13 @@ input,select,button{font-family:'Outfit',sans-serif;}
 
       <!-- LISTA -->
       <div class="card">
-        <div class="ctitle">📋 Clientes sin depósito reciente</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+          <div class="ctitle" style="margin-bottom:0;">📋 Clientes sin depósito reciente</div>
+          <button onclick="descargarNoRetenidosCSV()"
+            style="padding:8px 16px;background:var(--success);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">
+            &#x2B07;&#xFE0F; Descargar CSV
+          </button>
+        </div>
         <div id="retLista">
           <div class="empty"><p>Selecciona los filtros y haz clic en Buscar</p></div>
         </div>
@@ -1294,6 +1300,7 @@ let pausarActualizaciones = false;
 let slSelectedAsesores = [];
 let dashAsesoresSeleccionados = [], modalId = null, foundId = null;
 let unsub = null;
+let ultimosNoRetenidos = [];
 
 // ════ AUTH ════
 auth.onAuthStateChanged(u => {
@@ -3386,6 +3393,8 @@ async function cargarNoRetenidos() {
   document.getElementById('retUltimo').textContent = masReciente;
   document.getElementById('retResumen').style.display = 'block';
 
+  ultimosNoRetenidos = noRetenidos;
+
   if (noRetenidos.length === 0) {
     listaEl.innerHTML = '<div class="empty"><p>✅ No hay clientes inactivos en este período</p></div>';
     return;
@@ -3414,6 +3423,38 @@ async function cargarNoRetenidos() {
       </div>
     </div>`;
   }).join('');
+}
+
+function descargarNoRetenidosCSV() {
+  if (!ultimosNoRetenidos.length) { alert('Primero haz clic en Buscar para obtener la lista de clientes.'); return; }
+
+  const headers = ['Nombre','Apellido','Correo','Telefono','Pais','Asesor','Producto','Ultimo Deposito','Dias Sin Depositar','Total Depositado USD'];
+  const rows = ultimosNoRetenidos.map(c => {
+    const fechaUlt = c.ultimoDeposito ? new Date(c.ultimoDeposito).toLocaleDateString('es-VE') : '—';
+    const diasSin  = c.ultimoDeposito ? Math.floor((new Date()-new Date(c.ultimoDeposito))/(1000*60*60*24)) : '';
+    return [
+      c.nombre||'',
+      c.apellido||'',
+      c.correo||'',
+      c.telefono||'',
+      c.pais||'',
+      c.asesor||'',
+      c.producto||'',
+      fechaUlt,
+      diasSin,
+      (c.totalDepositos||0).toFixed(2)
+    ].map(v => '"' + String(v).replace(/"/g,'""') + '"');
+  });
+
+  const csv = [headers.join(','), ...rows.map(r=>r.join(','))].join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const fecha = new Date().toISOString().split('T')[0];
+  a.href = url;
+  a.download = 'tradestars_no_retenidos_' + fecha + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function limpiarFechasAnalytics() {
